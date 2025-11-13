@@ -399,3 +399,11 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+
+# Whisper Model Files
+Models/
+!Models/ 
+Models/*.bin   
+Models/*.ggml*
+Models/*.pt

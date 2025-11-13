@@ -1,27 +1,48 @@
+using Foraria.CallTranscriber.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllers();
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+builder.Services.AddHttpClient<ForariaCallbackClient>();
+builder.Services.AddScoped<IForariaCallbackClient, ForariaCallbackClient>();
+
+builder.Services.AddSingleton<IWhisperTranscriptionService, WhisperTranscriptionService>();
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy
+            .AllowAnyOrigin()
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
+var modelPath = builder.Configuration["Whisper:ModelPath"];
+if (!File.Exists(modelPath))
+{
+    Console.WriteLine("Descargando modelo de Whisper...");
+    var ps = System.Diagnostics.Process.Start("powershell", "./Scripts/download-model.ps1");
+    ps.WaitForExit();
+}
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
-if (!app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
-app.UseStaticFiles();
+app.UseCors("AllowAll");
 
 app.UseRouting();
-
 app.UseAuthorization();
-
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+app.MapControllers();
 
 app.Run();
