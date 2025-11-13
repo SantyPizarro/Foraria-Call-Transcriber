@@ -1,0 +1,7 @@
+﻿<Project>
+  <ItemGroup>
+    <Content Include="Models\*.bin">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

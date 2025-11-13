@@ -1,4 +1,6 @@
-﻿using Foraria.CallTranscriber.Models;
+﻿using System.Security.Cryptography;
+using System.Text;
+using Foraria.CallTranscriber.Models;
 using Foraria.CallTranscriber.Services;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,9 +34,7 @@ public class TranscriptionController : ControllerBase
     }
 
     [HttpPost("{callId:int}")]
-    [RequestSizeLimit(100_000_000)]
-    [Consumes("multipart/form-data")]
-    [Produces("application/json")]
+    [RequestSizeLimit(100_000_000)] // 100 MB
     public async Task<ActionResult<TranscriptionResponse>> Transcribe(
         int callId,
         [FromForm] AudioUploadDto request,
@@ -46,13 +46,11 @@ public class TranscriptionController : ControllerBase
         if (request.Audio == null || request.Audio.Length == 0)
             return BadRequest("Debe enviar un archivo de audio.");
 
-        var audio = request.Audio;
-
-        var audioFileName = $"{callId}_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}{Path.GetExtension(audio.FileName)}";
+        var audioFileName = $"{callId}_{DateTime.UtcNow:yyyyMMddHHmmss}_{Guid.NewGuid():N}{Path.GetExtension(request.Audio.FileName)}";
         var audioPath = Path.Combine(_audioFolder, audioFileName);
 
         await using (var stream = System.IO.File.Create(audioPath))
-            await audio.CopyToAsync(stream, ct);
+            await request.Audio.CopyToAsync(stream, ct);
 
         _logger.LogInformation("Audio guardado en {Path}", audioPath);
 
@@ -64,10 +62,15 @@ public class TranscriptionController : ControllerBase
         await System.IO.File.WriteAllTextAsync(transcriptPath, transcriptText, ct);
         _logger.LogInformation("Transcripción guardada en {Path}", transcriptPath);
 
+        var transcriptHash = ComputeSha256FromText(transcriptText);
+        var audioHash = ComputeSha256FromFile(audioPath);
+
         var dto = new ForariaTranscriptionCompleteDto
         {
             TranscriptPath = transcriptPath,
-            AudioPath = audioPath
+            AudioPath = audioPath,
+            TranscriptHash = transcriptHash,
+            AudioHash = audioHash
         };
 
         var notified = await _foraria.NotifyTranscriptionCompleteAsync(callId, dto, ct);
@@ -88,8 +91,22 @@ public class TranscriptionController : ControllerBase
         return Ok(response);
     }
 
-
     [HttpGet("health")]
     public IActionResult Health()
         => Ok(new { status = "ok" });
+    private static string ComputeSha256FromText(string text)
+    {
+        var bytes = Encoding.UTF8.GetBytes(text);
+        using var sha = SHA256.Create();
+        var hash = sha.ComputeHash(bytes);
+        return Convert.ToHexString(hash).ToLowerInvariant();
+    }
+
+    private static string ComputeSha256FromFile(string path)
+    {
+        using var sha = SHA256.Create();
+        using var stream = System.IO.File.OpenRead(path);
+        var hash = sha.ComputeHash(stream);
+        return Convert.ToHexString(hash).ToLowerInvariant();
+    }
 }

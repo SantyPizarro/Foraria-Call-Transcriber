@@ -2,6 +2,8 @@
 
 public class ForariaTranscriptionCompleteDto
 {
-    public string TranscriptPath { get; set; } = null!;
-    public string? AudioPath { get; set; }
+    public string TranscriptPath { get; set; } = string.Empty;
+    public string AudioPath { get; set; } = string.Empty;
+    public string TranscriptHash { get; set; } = string.Empty;
+    public string AudioHash { get; set; } = string.Empty;
 }
