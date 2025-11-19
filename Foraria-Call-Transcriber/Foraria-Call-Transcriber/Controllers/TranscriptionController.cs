@@ -91,6 +91,54 @@ public class TranscriptionController : ControllerBase
         return Ok(response);
     }
 
+    [HttpGet("{callId:int}/transcript-file")]
+    public IActionResult GetTranscriptFile(int callId)
+    {
+        var pattern = $"{callId}_*.txt";
+        var files = Directory.GetFiles(_transcriptFolder, pattern);
+
+        if (files.Length == 0)
+            return NotFound(new { message = "No se encontró archivo de transcripción para esa llamada." });
+
+        var filePath = files
+            .OrderByDescending(f => System.IO.File.GetCreationTimeUtc(f))
+            .First();
+
+        var fileName = Path.GetFileName(filePath);
+
+        var stream = System.IO.File.OpenRead(filePath);
+        return File(stream, "text/plain", fileName);
+    }
+
+    [HttpGet("{callId:int}/audio-file")]
+    public IActionResult GetAudioFile(int callId)
+    {
+        var pattern = $"{callId}_*.*";
+        var files = Directory.GetFiles(_audioFolder, pattern);
+
+        if (files.Length == 0)
+            return NotFound(new { message = "No se encontró archivo de audio para esa llamada." });
+
+        var filePath = files
+            .OrderByDescending(f => System.IO.File.GetCreationTimeUtc(f))
+            .First();
+
+        var fileName = Path.GetFileName(filePath);
+        var ext = Path.GetExtension(filePath).ToLowerInvariant();
+
+        var contentType = ext switch
+        {
+            ".wav" => "audio/wav",
+            ".mp3" => "audio/mpeg",
+            _ => "application/octet-stream"
+        };
+
+        var stream = System.IO.File.OpenRead(filePath);
+        return File(stream, contentType, fileName);
+    }
+
+
+
     [HttpGet("health")]
     public IActionResult Health()
         => Ok(new { status = "ok" });

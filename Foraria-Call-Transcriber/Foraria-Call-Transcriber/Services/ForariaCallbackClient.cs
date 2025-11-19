@@ -28,7 +28,7 @@ public class ForariaCallbackClient : IForariaCallbackClient
         CancellationToken ct = default)
     {
 
-        var url = $"{_baseUrl.TrimEnd('/')}/internal/transcription/{callId}/complete";
+        var url = $"{_baseUrl}/api/transcriptions/internal/{callId}/complete";
 
         _logger.LogInformation("Notificando a Foraria en {Url}...", url);
 
