@@ -407,3 +407,4 @@ Models/
 Models/*.bin   
 Models/*.ggml*
 Models/*.pt
+Foraria-Call-Transcriber/Foraria-Call-Transcriber/Models/ggml-base.bin

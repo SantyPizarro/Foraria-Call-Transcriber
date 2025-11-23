@@ -24,12 +24,6 @@ builder.Services.AddCors(options =>
 });
 
 var modelPath = builder.Configuration["Whisper:ModelPath"];
-if (!File.Exists(modelPath))
-{
-    Console.WriteLine("Descargando modelo de Whisper...");
-    var ps = System.Diagnostics.Process.Start("powershell", "./Scripts/download-model.ps1");
-    ps.WaitForExit();
-}
 
 var app = builder.Build();
 
